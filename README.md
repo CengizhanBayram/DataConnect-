@@ -7,7 +7,7 @@ DataConnect, veritabanı bağlantısı kurmayı kolaylaştıran bir Python uygul
 1. İlk olarak, projeyi klonlayın:
 
     ```bash
-    git clone https://github.com/yourusername/DataConnect.git
+    [git clone https://github.com/yourusername/DataConnect.git](https://github.com/CengizhanBayram/DataConnect-.git)
     ```
 
 2. Ardından, proje klasörüne gidin:
