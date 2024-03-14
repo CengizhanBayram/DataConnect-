@@ -35,8 +35,10 @@ DataConnect, veritabanı bağlantısı kurmayı kolaylaştıran bir Python uygul
 - SQLite
 
 ## Katkılar
-
-Kat Contributions are welcome! Fork the project, make your changes, and then submit a pull request.
+#Cengizhan Bayram 
+#Alker Ayhan
+#Ferhat Kürkçüoğlu 
+#Ümit Ünal 
 
 ## Lisans
 
