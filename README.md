@@ -28,7 +28,7 @@ DataConnect, veritabanı bağlantısı kurmayı kolaylaştıran bir Python uygul
 
 2. Veritabanı bağlantısı kurmak için gerekli bilgileri sağlayın (veritabanı türü, host, kullanıcı adı, parola vb.).
 
-3. Bağlantıyı kurduktan sonra, SQL sorgularınızı çalıştırarak veritabanı işlemlerini gerçekleştirin.
+...
 
 ## Desteklenen Veritabanları
 
