@@ -1,0 +1,10 @@
+# DataConnect için gereksinimler
+
+# Flask için
+flask
+
+# SQLite için
+sqlite3
+
+# Kiwi için
+kiwi
