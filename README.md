@@ -35,10 +35,16 @@ DataConnect, veritabanı bağlantısı kurmayı kolaylaştıran bir Python uygul
 - SQLite
 
 ## Katkılar
-#Cengizhan Bayram 
-#Alker Ayhan
-#Ferhat Kürkçüoğlu 
-#Ümit Ünal 
+Cengizhan Bayram (Takım kaptanı)
+
+
+Alker Ayhan
+
+
+Ferhat Kürkçüoğlu  
+
+
+Ümit Ünal 
 
 ## Lisans
 
