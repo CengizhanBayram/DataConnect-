@@ -1,4 +1,3 @@
-# DataConnect 
 # DataConnect
 
 DataConnect, veritabanı bağlantısı kurmayı kolaylaştıran bir Python uygulamasıdır. Bu uygulama, SQLite, MySQL, PostgreSQL gibi farklı veritabanı sistemleri ile etkileşimde bulunmanıza olanak tanır.
@@ -34,8 +33,6 @@ DataConnect, veritabanı bağlantısı kurmayı kolaylaştıran bir Python uygul
 ## Desteklenen Veritabanları
 
 - SQLite
-- MySQL
-- PostgreSQL
 
 ## Katkılar
 
