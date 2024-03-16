@@ -2,6 +2,11 @@
 
 DataConnect, veritabanı bağlantısı kurmayı kolaylaştıran bir Python uygulamasıdır. Bu uygulama, SQLite gibi veritabanı sistemi ile etkileşimde bulunmanıza olanak tanır.
 
+
+
+![image](https://github.com/CengizhanBayram/DataConnect-/assets/110194474/e888c25d-16ab-4f28-92df-5b6b868546de)
+
+
 ## Kurulum
 
 1. İlk olarak, projeyi klonlayın:
