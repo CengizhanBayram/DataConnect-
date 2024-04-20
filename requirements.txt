@@ -6,5 +6,6 @@ flask
 # SQLite için
 sqlite3
 
-# Kiwi için
-kiwi
+# PyQt5 için
+PyQt5
+
