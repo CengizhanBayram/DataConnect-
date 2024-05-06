@@ -87,7 +87,7 @@ class DBBrowser(App):
         try:
             self.cursor.execute("DELETE FROM users WHERE id=?", (id,))
             self.conn.commit()
-            self.result_label.text = 'Veri başarıyla silindi.'
+            self.result_label.text = 'Veri başarıyla silindi. :D'
         except Exception as e:
             self.result_label.text = f'Hata: {str(e)}'
 
