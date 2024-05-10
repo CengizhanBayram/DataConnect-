@@ -3,47 +3,33 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
-from kivy.uix.recycleview import RecycleView
-from kivy.uix.recycleview.views import RecycleDataViewBehavior
-from kivy.properties import ObjectProperty
 from DataConnect import DataConnect
 
-class RV(RecycleView):
+class AndroidApp(App):
     def __init__(self, **kwargs):
-        super(RV, self).__init__(**kwargs)
+        super(AndroidApp, self).__init__(**kwargs)
         self.db_backend = DataConnect('example.db')
-        self.data = []
 
-    def show_all_data(self):
-        result = self.db_backend.get_all_data()
-        self.data = [{'text': str(item)} for item in result]
-
-    def search_data(self, name):
-        result = self.db_backend.get_user_data(name)
-        self.data = [{'text': str(result)}]
-
-    def add_data(self, name, age):
-        result = self.db_backend.add_data(name, age)
-        self.show_all_data()
-
-class DBBrowser(App):
     def build(self):
-        self.title = 'SQLite DB Tarayıcı'
-        root = BoxLayout(orientation='vertical')
+        layout = BoxLayout(orientation='vertical')
 
-        self.result_label = Label(text='')
-        root.add_widget(self.result_label)
+        self.result_label = Label(text='', size_hint_y=None, height=40)
+        layout.add_widget(self.result_label)
 
-        self.query_input = TextInput(hint_text='Veri Arama:')
-        root.add_widget(self.query_input)
-
+        query_layout = BoxLayout(orientation='horizontal')
+        query_layout.add_widget(Label(text='Veri Arama:'))
+        self.query_input = TextInput()
+        query_layout.add_widget(self.query_input)
         search_button = Button(text='Ara')
         search_button.bind(on_press=self.search_data)
-        root.add_widget(search_button)
+        query_layout.add_widget(search_button)
+        layout.add_widget(query_layout)
 
-        self.rv = RV()
-        self.rv.show_all_data()
-        root.add_widget(self.rv)
+        self.table_label = Label(text='Sonuçlar:', size_hint_y=None, height=40)
+        layout.add_widget(self.table_label)
+
+        self.table = BoxLayout(orientation='vertical')
+        layout.add_widget(self.table)
 
         add_layout = BoxLayout(orientation='horizontal')
         add_layout.add_widget(Label(text='İsim:'))
@@ -55,18 +41,88 @@ class DBBrowser(App):
         add_button = Button(text='Ekle')
         add_button.bind(on_press=self.add_data)
         add_layout.add_widget(add_button)
-        root.add_widget(add_layout)
+        layout.add_widget(add_layout)
 
-        return root
+        update_layout = BoxLayout(orientation='horizontal')
+        update_layout.add_widget(Label(text='Güncelle ID:'))
+        self.update_id_input = TextInput()
+        update_layout.add_widget(self.update_id_input)
+        update_layout.add_widget(Label(text='Yeni İsim:'))
+        self.update_name_input = TextInput()
+        update_layout.add_widget(self.update_name_input)
+        update_layout.add_widget(Label(text='Yeni Yaş:'))
+        self.update_age_input = TextInput()
+        update_layout.add_widget(self.update_age_input)
+        update_button = Button(text='Güncelle')
+        update_button.bind(on_press=self.update_data)
+        update_layout.add_widget(update_button)
+        layout.add_widget(update_layout)
+
+        delete_layout = BoxLayout(orientation='horizontal')
+        delete_layout.add_widget(Label(text='Sil ID:'))
+        self.delete_id_input = TextInput()
+        delete_layout.add_widget(self.delete_id_input)
+        delete_button = Button(text='Sil')
+        delete_button.bind(on_press=self.delete_data)
+        delete_layout.add_widget(delete_button)
+        layout.add_widget(delete_layout)
+
+        sql_layout = BoxLayout(orientation='horizontal')
+        sql_layout.add_widget(Label(text='SQL Sorgusu:'))
+        self.sql_input = TextInput()
+        sql_layout.add_widget(self.sql_input)
+        sql_button = Button(text='Sorgula')
+        sql_button.bind(on_press=self.execute_sql)
+        sql_layout.add_widget(sql_button)
+        layout.add_widget(sql_layout)
+
+        self.show_all_data()
+
+        return layout
+
+    def show_all_data(self):
+        self.table.clear_widgets()
+        result = self.db_backend.get_all_data()
+        self.display_result(result)
 
     def search_data(self, instance):
-        name = self.query_input.text
-        self.rv.search_data(name)
+        user_id = self.query_input.text
+        result = self.db_backend.get_user_data(user_id)
+        self.display_result([result])
 
     def add_data(self, instance):
         name = self.add_name_input.text
         age = self.add_age_input.text
-        self.rv.add_data(name, age)
+        result = self.db_backend.add_data(name, age)
+        self.show_all_data()
+
+    def update_data(self, instance):
+        id = self.update_id_input.text
+        new_name = self.update_name_input.text
+        new_age = self.update_age_input.text
+        result = self.db_backend.update_data(id, new_name, new_age)
+        self.show_all_data()
+
+    def delete_data(self, instance):
+        id = self.delete_id_input.text
+        result = self.db_backend.delete_data(id)
+        self.show_all_data()
+
+    def execute_sql(self, instance):
+        query = self.sql_input.text
+        result = self.db_backend.sql_query(query)
+        self.display_result(result)
+
+    def display_result(self, result):
+        self.table.clear_widgets()
+        if not result:
+            self.table.add_widget(Label(text='Sonuç Bulunamadı'))
+        else:
+            for row in result:
+                row_layout = BoxLayout(orientation='horizontal')
+                for item in row:
+                    row_layout.add_widget(Label(text=str(item)))
+                self.table.add_widget(row_layout)
 
 if __name__ == '__main__':
-    DBBrowser().run()
+    AndroidApp().run()
