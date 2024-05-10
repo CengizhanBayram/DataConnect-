@@ -65,7 +65,20 @@ class DBBrowser(QWidget):
         delete_layout.addWidget(delete_button)
         main_layout.addLayout(delete_layout)
 
+
+        search_query_button = QPushButton('Sorguyla Bul')
+        search_query_button.clicked.connect(self.search_with_query)
+        query_layout.addWidget(search_query_button)
+        main_layout.addLayout(query_layout)
+
+
+
         self.setLayout(main_layout)
+
+    def search_with_query(self):
+        query = self.query_input.text()
+        result = self.db_backend.sql_query(query)
+        self.display_result(result)    
 
     def show_all_data(self):
         result = self.db_backend.get_all_data()

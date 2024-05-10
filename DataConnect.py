@@ -29,6 +29,14 @@ class DataConnect:
             return 'Veri başarıyla silindi.'
         except Exception as e:
             return f'Hata: {str(e)}'
+        
+    def sql_query(self, query):
+        try:
+            self.cursor.execute(query)
+            result = self.cursor.fetchall()
+            return result
+        except Exception as e:
+            return f'Hata: {str(e)}'    
 
     def get_all_data(self):
         try:
