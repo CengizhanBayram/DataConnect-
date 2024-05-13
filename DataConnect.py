@@ -49,8 +49,8 @@ class DataConnect:
     def get_column_names(self):
         try:
             self.cursor.execute("PRAGMA table_info(users)")
-            result = self.cursor.fetchall()
-            return [col[1] for col in result]
+            result = self.cursor.fetchall() 
+            return [col[1] for col in result] 
         except Exception as e:
             return f'Hata: {str(e)}'
 

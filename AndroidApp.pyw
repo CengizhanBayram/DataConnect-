@@ -126,3 +126,4 @@ class AndroidApp(App):
 
 if __name__ == '__main__':
     AndroidApp().run()
+    #insan yalnız doğarda yalnız ölmezmiş naber bizden uzak olsun keder
