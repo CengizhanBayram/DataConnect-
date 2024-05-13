@@ -1,131 +1,209 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QTableWidget, QTableWidgetItem
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem, QDialog, QLineEdit, QMessageBox
 from DataConnect import DataConnect
 
-class DBBrowser(QWidget):
-    def __init__(self):
+class TableView(QDialog):
+    def __init__(self, data, data_connector):
         super().__init__()
-        self.db_backend = DataConnect('example.db')
-        self.initUI()
 
-    def initUI(self):
-        self.setWindowTitle('SQLite DB Tarayıcı')
-        self.setGeometry(100, 100, 600, 400)
+        self.setWindowTitle("Tablo Görünümü")
+        self.layout = QVBoxLayout()
 
-        main_layout = QVBoxLayout()
+        self.table_widget = QTableWidget()
+        self.table_widget.setRowCount(len(data))
+        self.table_widget.setColumnCount(len(data[0]))
 
-        self.result_label = QLabel()
-        main_layout.addWidget(self.result_label)
+        for i, row in enumerate(data):
+            for j, item in enumerate(row):
+                self.table_widget.setItem(i, j, QTableWidgetItem(str(item)))
 
-        query_layout = QHBoxLayout()
-        query_layout.addWidget(QLabel('Veri Arama: '))
-        self.query_input = QLineEdit()
-        query_layout.addWidget(self.query_input)
-        search_button = QPushButton('Ara')
-        search_button.clicked.connect(self.search_data)
-        query_layout.addWidget(search_button)
-        main_layout.addLayout(query_layout)
+        self.layout.addWidget(self.table_widget)
 
-        self.table = QTableWidget()
-        main_layout.addWidget(self.table)
+        self.button_layout = QHBoxLayout()
+        self.add_button = QPushButton("Ekle")
+        self.add_button.clicked.connect(self.add_data_dialog)
+        self.update_button = QPushButton("Güncelle")
+        self.update_button.clicked.connect(self.update_data_dialog)
+        self.delete_button = QPushButton("Sil")
+        self.delete_button.clicked.connect(self.delete_data)
+        self.button_layout.addWidget(self.add_button)
+        self.button_layout.addWidget(self.update_button)
+        self.button_layout.addWidget(self.delete_button)
 
-        add_layout = QHBoxLayout()
-        add_layout.addWidget(QLabel('İsim:'))
-        self.add_name_input = QLineEdit()
-        add_layout.addWidget(self.add_name_input)
-        add_layout.addWidget(QLabel('Yaş:'))
-        self.add_age_input = QLineEdit()
-        add_layout.addWidget(self.add_age_input)
-        add_button = QPushButton('Ekle')
-        add_button.clicked.connect(self.add_data)
-        add_layout.addWidget(add_button)
-        main_layout.addLayout(add_layout)
+        self.layout.addLayout(self.button_layout)
 
-        update_layout = QHBoxLayout()
-        update_layout.addWidget(QLabel('Güncelle ID:'))
-        self.update_id_input = QLineEdit()
-        update_layout.addWidget(self.update_id_input)
-        update_layout.addWidget(QLabel('Yeni İsim:'))
-        self.update_name_input = QLineEdit()
-        update_layout.addWidget(self.update_name_input)
-        update_layout.addWidget(QLabel('Yeni Yaş:'))
-        self.update_age_input = QLineEdit()
-        update_layout.addWidget(self.update_age_input)
-        update_button = QPushButton('Güncelle')
-        update_button.clicked.connect(self.update_data)
-        update_layout.addWidget(update_button)
-        main_layout.addLayout(update_layout)
+        self.setLayout(self.layout)
 
-        delete_layout = QHBoxLayout()
-        delete_layout.addWidget(QLabel('Sil ID:'))
-        self.delete_id_input = QLineEdit()
-        delete_layout.addWidget(self.delete_id_input)
-        delete_button = QPushButton('Sil')
-        delete_button.clicked.connect(self.delete_data)
-        delete_layout.addWidget(delete_button)
-        main_layout.addLayout(delete_layout)
+        self.data_connector = data_connector
 
+    def add_data_dialog(self):
+        dialog = AddDataDialog(self, self.data_connector)
+        if dialog.exec_():
+            self.update_table()
 
-        search_query_button = QPushButton('Sorguyla Bul')
-        search_query_button.clicked.connect(self.search_with_query)
-        query_layout.addWidget(search_query_button)
-        main_layout.addLayout(query_layout)
-
-
-
-        self.setLayout(main_layout)
-
-    def search_with_query(self):
-        query = self.query_input.text()
-        result = self.db_backend.sql_query(query)
-        self.display_result(result)    
-
-    def show_all_data(self):
-        result = self.db_backend.get_all_data()
-        self.display_result(result)
-
-    def search_data(self):
-        name = self.query_input.text()
-        result = self.db_backend.get_user_data(name)
-        self.display_result([result])
-
-    def add_data(self):
-        name = self.add_name_input.text()
-        age = self.add_age_input.text()
-        result = self.db_backend.add_data(name, age)
-        QMessageBox.information(self, 'Bilgi', result)
-        self.show_all_data()
-
-    def update_data(self):
-        id = self.update_id_input.text()
-        new_name = self.update_name_input.text()
-        new_age = self.update_age_input.text()
-        result = self.db_backend.update_data(id, new_name, new_age)
-        QMessageBox.information(self, 'Bilgi', result)
-        self.show_all_data()
+    def update_data_dialog(self):
+        selected_items = self.table_widget.selectedItems()
+        if len(selected_items) == 0:
+            QMessageBox.warning(self, "Uyarı", "Lütfen güncellemek için bir satır seçin.")
+            return
+        row_index = selected_items[0].row()
+        row_id = self.table_widget.item(row_index, 0).text()  # Assuming the first column is ID
+        row_data = [self.table_widget.item(row_index, i).text() for i in range(1, self.table_widget.columnCount())]
+        dialog = UpdateDataDialog(self, row_id, row_data, self.data_connector)
+        if dialog.exec_():
+            self.update_table()
 
     def delete_data(self):
-        id = self.delete_id_input.text()
-        result = self.db_backend.delete_data(id)
-        QMessageBox.information(self, 'Bilgi', result)
-        self.show_all_data()
+        selected_items = self.table_widget.selectedItems()
+        if len(selected_items) == 0:
+            QMessageBox.warning(self, "Uyarı", "Lütfen silmek için bir satır seçin.")
+            return
+        row_index = selected_items[0].row()
+        id = self.table_widget.item(row_index, 0).text()  # Assuming the first column is ID
+        confirm = QMessageBox.question(self, "Onay", "Seçilen veriyi silmek istediğinize emin misiniz?",
+                                        QMessageBox.Yes | QMessageBox.No)
+        if confirm == QMessageBox.Yes:
+            self.data_connector.delete_data(id)
+            self.update_table()
 
-    def display_result(self, result):
-        self.table.clear()
-        column_names = self.db_backend.get_column_names()  # Doğrudan DataConnect sınıfından sütun adlarını alın
-        self.table.setColumnCount(len(column_names))
-        self.table.setRowCount(len(result))
+    def update_table(self):
+        data = self.data_connector.show_selected_table()
+        if data:
+            self.table_widget.clearContents()
+            self.table_widget.setRowCount(len(data))
+            self.table_widget.setColumnCount(len(data[0]))
+            for i, row in enumerate(data):
+                for j, item in enumerate(row):
+                    self.table_widget.setItem(i, j, QTableWidgetItem(str(item)))
 
-        # Sütun adları listesini dize listesi olarak ayarlayın
-        self.table.setHorizontalHeaderLabels([str(name) for name in column_names])
+class AddDataDialog(QDialog):
+    def __init__(self, parent=None, data_connector=None):
+        super().__init__(parent)
 
-        for i, row in enumerate(result):
-            for j, col in enumerate(row):
-                item = QTableWidgetItem(str(col))
-                self.table.setItem(i, j, item)
-if __name__ == '__main__':
+        self.setWindowTitle("Veri Ekle")
+        self.layout = QVBoxLayout()
+
+        self.name_label = QLabel("İsim:")
+        self.name_edit = QLineEdit()
+        self.age_label = QLabel("Yaş:")
+        self.age_edit = QLineEdit()
+
+        self.add_button = QPushButton("Ekle")
+        self.add_button.clicked.connect(self.add_data)
+
+        self.layout.addWidget(self.name_label)
+        self.layout.addWidget(self.name_edit)
+        self.layout.addWidget(self.age_label)
+        self.layout.addWidget(self.age_edit)
+        self.layout.addWidget(self.add_button)
+
+        self.setLayout(self.layout)
+
+        self.data_connector = data_connector
+
+    def add_data(self):
+        name = self.name_edit.text()
+        age = self.age_edit.text()
+        if name and age:
+            self.data_connector.add_data(name, age)
+            self.accept()
+        else:
+            QMessageBox.warning(self, "Uyarı", "Lütfen isim ve yaş alanlarını doldurun.")
+
+class UpdateDataDialog(QDialog):
+    def __init__(self, parent=None, row_id=None, row_data=None, data_connector=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Veri Güncelle")
+        self.layout = QVBoxLayout()
+
+        self.fields = []
+        self.field_labels = []
+        self.field_edits = []
+
+        # Assuming row_data contains field values, and row_id is the ID of the row to be updated
+        for i, field_value in enumerate(row_data):
+            field_label = QLabel(f"Field {i+2}:")
+            field_edit = QLineEdit(field_value)
+            self.field_labels.append(field_label)
+            self.field_edits.append(field_edit)
+            field_layout = QHBoxLayout()
+            field_layout.addWidget(field_label)
+            field_layout.addWidget(field_edit)
+            self.layout.addLayout(field_layout)
+            self.fields.append((field_label, field_edit))
+
+        self.update_button = QPushButton("Güncelle")
+        self.update_button.clicked.connect(self.update_data)
+
+        self.layout.addWidget(self.update_button)
+
+        self.setLayout(self.layout)
+
+        self.row_id = row_id
+        self.data_connector = data_connector
+
+    def update_data(self):
+        # Collect field values from QLineEdit widgets
+        field_values = [field_edit.text() for field_edit in self.field_edits]
+
+        if all(field_values):
+            # Assuming row_id is the first column (ID) of the table
+            result = self.data_connector.update_data(self.row_id, *field_values)
+            QMessageBox.information(self, "Bilgi", result)
+            self.accept()
+        else:
+            QMessageBox.warning(self, "Uyarı", "Lütfen tüm alanları doldurun.")
+
+class MainWidget(QWidget):
+    def __init__(self, data_connector):
+        super().__init__()
+
+        self.data_connector = data_connector
+
+        self.layout = QVBoxLayout()
+
+        self.search_label = QLabel("Tablo Arama:")
+        self.search_edit = QLineEdit()
+        self.search_edit.textChanged.connect(self.search_tables)
+
+        self.table_combo_box = QComboBox()
+        self.table_combo_box.addItems(self.data_connector.get_all_tables())
+        self.table_combo_box.currentIndexChanged.connect(self.show_table)
+
+        self.show_table_button = QPushButton("Tabloyu Göster")
+        self.show_table_button.clicked.connect(self.show_table)
+
+        self.layout.addWidget(self.search_label)
+        self.layout.addWidget(self.search_edit)
+        self.layout.addWidget(QLabel("Lütfen bir tablo seçin:"))
+        self.layout.addWidget(self.table_combo_box)
+        self.layout.addWidget(self.show_table_button)
+
+        self.setLayout(self.layout)
+
+    def search_tables(self):
+        search_text = self.search_edit.text()
+        if search_text:
+            tables = self.data_connector.search_table(search_text)
+            self.table_combo_box.clear()
+            self.table_combo_box.addItems(tables)
+        else:
+            self.table_combo_box.clear()
+            self.table_combo_box.addItems(self.data_connector.get_all_tables())
+
+    def show_table(self):
+        selected_table = self.table_combo_box.currentText()
+        if selected_table:
+            self.data_connector.select_table(selected_table)
+            data = self.data_connector.show_selected_table()
+            if data:
+                self.table_view = TableView(data, self.data_connector)
+                self.table_view.exec_()
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = DBBrowser()
-    window.show()
-    window.show_all_data()
+    data_connector = DataConnect("x4sqlite1.db")
+    main_widget = MainWidget(data_connector)
+    main_widget.show()
     sys.exit(app.exec_())

@@ -5,60 +5,80 @@ class DataConnect:
         self.db_name = db_name
         self.conn = sqlite3.connect(self.db_name)
         self.cursor = self.conn.cursor()
+        self.selected_table = None
 
-    def add_data(self, name, age):
+    def select_table(self, table_name):
         try:
-            self.cursor.execute("INSERT INTO users (name, age) VALUES (?, ?)", (name.strip(), age.strip()))
+            self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+            result = self.cursor.fetchone()
+            if result:
+                self.selected_table = table_name
+                return f"'{table_name}' tablosu seçildi."
+            else:
+                return f"'{table_name}' adında bir tablo bulunamadı."
+        except Exception as e:
+            return f'Hata: {str(e)}'
+
+    def search_table(self, table_name):
+        try:
+            self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE ?", (f'%{table_name}%',))
+            result = self.cursor.fetchall()
+            if result:
+                return [table[0] for table in result]
+            else:
+                return []
+        except Exception as e:
+            return f'Hata: {str(e)}'
+
+    def get_all_tables(self):
+        try:
+            self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            result = self.cursor.fetchall()
+            return [table[0] for table in result]
+        except Exception as e:
+            return f'Hata: {str(e)}'
+
+    def show_selected_table(self):
+        if self.selected_table:
+            try:
+                self.cursor.execute(f"SELECT * FROM {self.selected_table}")
+                result = self.cursor.fetchall()
+                return result
+            except Exception as e:
+                return f'Hata: {str(e)}'
+        else:
+            return "Lütfen önce bir tablo seçin."
+
+    def add_data(self, *field_values):
+        try:
+            field_count = len(field_values)
+            placeholders = ','.join(['?'] * field_count)
+            query = f"INSERT INTO {self.selected_table} VALUES ({placeholders})"
+            self.cursor.execute(query, field_values)
             self.conn.commit()
             return 'Veri başarıyla eklendi.'
         except Exception as e:
             return f'Hata: {str(e)}'
 
-    def update_data(self, id, new_name, new_age):
+    def update_data(self, id, *field_values):
         try:
-            self.cursor.execute("UPDATE users SET name=?, age=? WHERE id=?", (new_name.strip(), new_age.strip(), id.strip()))
+            field_count = len(field_values)
+            placeholders = ','.join(['field{}=?'.format(i+1) for i in range(field_count)])
+            query = f"UPDATE {self.selected_table} SET {placeholders} WHERE id=?"
+            values = field_values + (id,)
+            self.cursor.execute(query, values)
             self.conn.commit()
             return 'Veri başarıyla güncellendi.'
         except Exception as e:
             return f'Hata: {str(e)}'
 
+
+
     def delete_data(self, id):
         try:
-            self.cursor.execute("DELETE FROM users WHERE id=?", (id,))
+            self.cursor.execute(f"DELETE FROM {self.selected_table} WHERE id=?", (id,))
             self.conn.commit()
             return 'Veri başarıyla silindi.'
-        except Exception as e:
-            return f'Hata: {str(e)}'
-        
-    def sql_query(self, query):
-        try:
-            self.cursor.execute(query)
-            result = self.cursor.fetchall()
-            return result
-        except Exception as e:
-            return f'Hata: {str(e)}'    
-
-    def get_all_data(self):
-        try:
-            self.cursor.execute("SELECT * FROM users")
-            result = self.cursor.fetchall()
-            return result
-        except Exception as e:
-            return f'Hata: {str(e)}'
-
-    def get_column_names(self):
-        try:
-            self.cursor.execute("PRAGMA table_info(users)")
-            result = self.cursor.fetchall() 
-            return [col[1] for col in result] 
-        except Exception as e:
-            return f'Hata: {str(e)}'
-
-    def get_user_data(self, user_id):
-        try:
-            self.cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
-            result = self.cursor.fetchone() # Tek bir kullanıcı döndürür
-            return result
         except Exception as e:
             return f'Hata: {str(e)}'
 
