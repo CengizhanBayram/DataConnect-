@@ -1,209 +1,183 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTableWidget, QTableWidgetItem, QDialog, QLineEdit, QMessageBox
+from PyQt5.QtWidgets import QApplication,  QTableWidget,QTableWidgetItem ,QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QMessageBox, QStackedWidget, QInputDialog, QTextEdit
+from PyQt5.QtCore import Qt
+import sqlite3
 from DataConnect import DataConnect
 
-class TableView(QDialog):
-    def __init__(self, data, data_connector):
+class MainWindow(QWidget):
+    def __init__(self, db_name):
         super().__init__()
+        self.setWindowTitle("SQLite Database Browser")
+        self.setGeometry(100, 100, 600, 400)
 
-        self.setWindowTitle("Tablo Görünümü")
-        self.layout = QVBoxLayout()
+        self.db = DataConnect(db_name)
+        
+        self.main_layout = QVBoxLayout()
+        
+        self.stacked_widget = QStackedWidget()
+        
+        self.create_table_page = self.create_table_ui()
+        self.table_operations_page = self.table_operations_ui()
+        
+        self.stacked_widget.addWidget(self.create_table_page)
+        self.stacked_widget.addWidget(self.table_operations_page)
+        
+        self.main_layout.addWidget(self.stacked_widget)
+        
+        self.setLayout(self.main_layout)
+        
+    def create_table_ui(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+        
+        self.table_name_input = QLineEdit()
+        self.table_name_input.setPlaceholderText("Table Name")
+        
+        self.columns_input = QLineEdit()
+        self.columns_input.setPlaceholderText("Columns (e.g. id INTEGER PRIMARY KEY, name TEXT)")
+        
+        create_table_button = QPushButton("Create Table")
+        create_table_button.clicked.connect(self.create_table)
+        
+        layout.addWidget(QLabel("Create a new table"))
+        layout.addWidget(self.table_name_input)
+        layout.addWidget(self.columns_input)
+        layout.addWidget(create_table_button)
+        
+        self.table_list = QListWidget()
+        self.table_list.itemClicked.connect(self.select_table)
+        
+        layout.addWidget(QLabel("Existing Tables"))
+        layout.addWidget(self.table_list)
+        
+        show_tables_button = QPushButton("Show Tables")
+        show_tables_button.clicked.connect(self.show_tables)
+        
+        layout.addWidget(show_tables_button)
+        
+        widget.setLayout(layout)
+        
+        return widget
+        
+    def create_table(self):
+        table_name = self.table_name_input.text()
+        columns = self.columns_input.text()
+        
+        if not table_name or not columns:
+            QMessageBox.warning(self, "Input Error", "Table name and columns are required")
+            return
+        
+        columns_dict = dict(column.split() for column in columns.split(', '))
+        message = self.db.create_table(table_name, **columns_dict)
+        QMessageBox.information(self, "Create Table", message)
+        self.show_tables()
+        
+    def show_tables(self):
+        tables = self.db.get_all_tables()
+        self.table_list.clear()
+        if isinstance(tables, list):
+            self.table_list.addItems(tables)
+        else:
+            QMessageBox.warning(self, "Error", tables)
+    
+    def select_table(self, item):
+        table_name = item.text()
+        message = self.db.select_table(table_name)
+        QMessageBox.information(self, "Select Table", message)
+        self.stacked_widget.setCurrentWidget(self.table_operations_page)
+        
+    def table_operations_ui(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+        
+        self.operation_status = QLabel("Table Operations")
+        
+        layout.addWidget(self.operation_status)
+        
+        back_button = QPushButton("Back to Main")
+        back_button.clicked.connect(self.back_to_main)
+        
+        layout.addWidget(back_button)
+        
+        widget.setLayout(layout)
+        
+        return widget
+        
+    def back_to_main(self):
+        self.stacked_widget.setCurrentWidget(self.create_table_page)
+    def table_operations_ui(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+        
+        self.operation_status = QLabel("Table Operations")
+        
+        self.add_data_button = QPushButton("Add Data")
+        self.add_data_button.clicked.connect(self.add_data_dialog)
+        
+        self.delete_data_button = QPushButton("Delete Data")
+        self.delete_data_button.clicked.connect(self.delete_data_dialog)
+        
+        self.show_table_button = QPushButton("Show Table Contents")
+        self.show_table_button.clicked.connect(self.show_table_contents)
+        
+        self.table_content_display = QTableWidget()
+        
+        layout.addWidget(self.operation_status)
+        layout.addWidget(self.add_data_button)
+        layout.addWidget(self.delete_data_button)
+        layout.addWidget(self.show_table_button)
+        layout.addWidget(self.table_content_display)
+        
+        back_button = QPushButton("Back to Main")
+        back_button.clicked.connect(self.back_to_main)
+        
+        layout.addWidget(back_button)
+        
+        widget.setLayout(layout)
+        
+        return widget
 
-        self.table_widget = QTableWidget()
-        self.table_widget.setRowCount(len(data))
-        self.table_widget.setColumnCount(len(data[0]))
-
-        for i, row in enumerate(data):
-            for j, item in enumerate(row):
-                self.table_widget.setItem(i, j, QTableWidgetItem(str(item)))
-
-        self.layout.addWidget(self.table_widget)
-
-        self.button_layout = QHBoxLayout()
-        self.add_button = QPushButton("Ekle")
-        self.add_button.clicked.connect(self.add_data_dialog)
-        self.update_button = QPushButton("Güncelle")
-        self.update_button.clicked.connect(self.update_data_dialog)
-        self.delete_button = QPushButton("Sil")
-        self.delete_button.clicked.connect(self.delete_data)
-        self.button_layout.addWidget(self.add_button)
-        self.button_layout.addWidget(self.update_button)
-        self.button_layout.addWidget(self.delete_button)
-
-        self.layout.addLayout(self.button_layout)
-
-        self.setLayout(self.layout)
-
-        self.data_connector = data_connector
-
+    def show_table_contents(self):
+        table_contents = self.db.show_selected_table()
+        if isinstance(table_contents, list):
+            num_rows = len(table_contents)
+            num_cols = len(table_contents[0])
+            self.table_content_display.setRowCount(num_rows)
+            self.table_content_display.setColumnCount(num_cols)
+            for i in range(num_rows):
+                for j in range(num_cols):
+                    item = QTableWidgetItem(str(table_contents[i][j]))
+                    self.table_content_display.setItem(i, j, item)
+        else:
+            QMessageBox.warning(self, "Error", table_contents)
+        
     def add_data_dialog(self):
-        dialog = AddDataDialog(self, self.data_connector)
-        if dialog.exec_():
-            self.update_table()
+        text, ok = QInputDialog.getText(self, "Add Data", "Enter data separated by comma:")
+        if ok:
+            data = text.split(',')
+            message = self.db.add_data(**{self.db.selected_table_columns[i]: data[i].strip() for i in range(len(data))})
+            QMessageBox.information(self, "Add Data", message)
 
     def update_data_dialog(self):
-        selected_items = self.table_widget.selectedItems()
-        if len(selected_items) == 0:
-            QMessageBox.warning(self, "Uyarı", "Lütfen güncellemek için bir satır seçin.")
-            return
-        row_index = selected_items[0].row()
-        row_id = self.table_widget.item(row_index, 0).text()  # Assuming the first column is ID
-        row_data = [self.table_widget.item(row_index, i).text() for i in range(1, self.table_widget.columnCount())]
-        dialog = UpdateDataDialog(self, row_id, row_data, self.data_connector)
-        if dialog.exec_():
-            self.update_table()
+        id, ok = QInputDialog.getInt(self, "Update Data", "Enter ID of the row to update:")
+        if ok:
+            text, ok = QInputDialog.getText(self, "Update Data", f"Enter new data separated by comma for row with ID {id}:")
+            if ok:
+                data = text.split(',')
+                message = self.db.update_data(id, **{self.db.selected_table_columns[i]: data[i].strip() for i in range(len(data))})
+                QMessageBox.information(self, "Update Data", message)
 
-    def delete_data(self):
-        selected_items = self.table_widget.selectedItems()
-        if len(selected_items) == 0:
-            QMessageBox.warning(self, "Uyarı", "Lütfen silmek için bir satır seçin.")
-            return
-        row_index = selected_items[0].row()
-        id = self.table_widget.item(row_index, 0).text()  # Assuming the first column is ID
-        confirm = QMessageBox.question(self, "Onay", "Seçilen veriyi silmek istediğinize emin misiniz?",
-                                        QMessageBox.Yes | QMessageBox.No)
-        if confirm == QMessageBox.Yes:
-            self.data_connector.delete_data(id)
-            self.update_table()
-
-    def update_table(self):
-        data = self.data_connector.show_selected_table()
-        if data:
-            self.table_widget.clearContents()
-            self.table_widget.setRowCount(len(data))
-            self.table_widget.setColumnCount(len(data[0]))
-            for i, row in enumerate(data):
-                for j, item in enumerate(row):
-                    self.table_widget.setItem(i, j, QTableWidgetItem(str(item)))
-
-class AddDataDialog(QDialog):
-    def __init__(self, parent=None, data_connector=None):
-        super().__init__(parent)
-
-        self.setWindowTitle("Veri Ekle")
-        self.layout = QVBoxLayout()
-
-        self.name_label = QLabel("İsim:")
-        self.name_edit = QLineEdit()
-        self.age_label = QLabel("Yaş:")
-        self.age_edit = QLineEdit()
-
-        self.add_button = QPushButton("Ekle")
-        self.add_button.clicked.connect(self.add_data)
-
-        self.layout.addWidget(self.name_label)
-        self.layout.addWidget(self.name_edit)
-        self.layout.addWidget(self.age_label)
-        self.layout.addWidget(self.age_edit)
-        self.layout.addWidget(self.add_button)
-
-        self.setLayout(self.layout)
-
-        self.data_connector = data_connector
-
-    def add_data(self):
-        name = self.name_edit.text()
-        age = self.age_edit.text()
-        if name and age:
-            self.data_connector.add_data(name, age)
-            self.accept()
-        else:
-            QMessageBox.warning(self, "Uyarı", "Lütfen isim ve yaş alanlarını doldurun.")
-
-class UpdateDataDialog(QDialog):
-    def __init__(self, parent=None, row_id=None, row_data=None, data_connector=None):
-        super().__init__(parent)
-
-        self.setWindowTitle("Veri Güncelle")
-        self.layout = QVBoxLayout()
-
-        self.fields = []
-        self.field_labels = []
-        self.field_edits = []
-
-        # Assuming row_data contains field values, and row_id is the ID of the row to be updated
-        for i, field_value in enumerate(row_data):
-            field_label = QLabel(f"Field {i+2}:")
-            field_edit = QLineEdit(field_value)
-            self.field_labels.append(field_label)
-            self.field_edits.append(field_edit)
-            field_layout = QHBoxLayout()
-            field_layout.addWidget(field_label)
-            field_layout.addWidget(field_edit)
-            self.layout.addLayout(field_layout)
-            self.fields.append((field_label, field_edit))
-
-        self.update_button = QPushButton("Güncelle")
-        self.update_button.clicked.connect(self.update_data)
-
-        self.layout.addWidget(self.update_button)
-
-        self.setLayout(self.layout)
-
-        self.row_id = row_id
-        self.data_connector = data_connector
-
-    def update_data(self):
-        # Collect field values from QLineEdit widgets
-        field_values = [field_edit.text() for field_edit in self.field_edits]
-
-        if all(field_values):
-            # Assuming row_id is the first column (ID) of the table
-            result = self.data_connector.update_data(self.row_id, *field_values)
-            QMessageBox.information(self, "Bilgi", result)
-            self.accept()
-        else:
-            QMessageBox.warning(self, "Uyarı", "Lütfen tüm alanları doldurun.")
-
-class MainWidget(QWidget):
-    def __init__(self, data_connector):
-        super().__init__()
-
-        self.data_connector = data_connector
-
-        self.layout = QVBoxLayout()
-
-        self.search_label = QLabel("Tablo Arama:")
-        self.search_edit = QLineEdit()
-        self.search_edit.textChanged.connect(self.search_tables)
-
-        self.table_combo_box = QComboBox()
-        self.table_combo_box.addItems(self.data_connector.get_all_tables())
-        self.table_combo_box.currentIndexChanged.connect(self.show_table)
-
-        self.show_table_button = QPushButton("Tabloyu Göster")
-        self.show_table_button.clicked.connect(self.show_table)
-
-        self.layout.addWidget(self.search_label)
-        self.layout.addWidget(self.search_edit)
-        self.layout.addWidget(QLabel("Lütfen bir tablo seçin:"))
-        self.layout.addWidget(self.table_combo_box)
-        self.layout.addWidget(self.show_table_button)
-
-        self.setLayout(self.layout)
-
-    def search_tables(self):
-        search_text = self.search_edit.text()
-        if search_text:
-            tables = self.data_connector.search_table(search_text)
-            self.table_combo_box.clear()
-            self.table_combo_box.addItems(tables)
-        else:
-            self.table_combo_box.clear()
-            self.table_combo_box.addItems(self.data_connector.get_all_tables())
-
-    def show_table(self):
-        selected_table = self.table_combo_box.currentText()
-        if selected_table:
-            self.data_connector.select_table(selected_table)
-            data = self.data_connector.show_selected_table()
-            if data:
-                self.table_view = TableView(data, self.data_connector)
-                self.table_view.exec_()
+    def delete_data_dialog(self):
+        id, ok = QInputDialog.getInt(self, "Delete Data", "Enter ID of the row to delete:")
+        if ok:
+            message = self.db.delete_data(id)
+            QMessageBox.information(self, "Delete Data", message)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    data_connector = DataConnect("x4sqlite1.db")
-    main_widget = MainWidget(data_connector)
-    main_widget.show()
+    
+    db_name = "x4sqlite1.db"
+    window = MainWindow(db_name)
+    window.show()
+    
     sys.exit(app.exec_())

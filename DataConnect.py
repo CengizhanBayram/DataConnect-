@@ -49,6 +49,17 @@ class DataConnect:
         else:
             return "Lütfen önce bir tablo seçin."
 
+    def get_table_structure(self):
+        if self.selected_table:
+            try:
+                self.cursor.execute(f"PRAGMA table_info({self.selected_table})")
+                result = self.cursor.fetchall()
+                return result
+            except Exception as e:
+                return f'Hata: {str(e)}'
+        else:
+            return "Lütfen önce bir tablo seçin."
+
     def add_data(self, *field_values):
         try:
             field_count = len(field_values)
@@ -71,8 +82,6 @@ class DataConnect:
             return 'Veri başarıyla güncellendi.'
         except Exception as e:
             return f'Hata: {str(e)}'
-
-
 
     def delete_data(self, id):
         try:
