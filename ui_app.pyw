@@ -5,25 +5,27 @@ from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QWidge
 class DataConnect:
     def __init__(self, db_name):
         self.db_name = db_name
-        self.conn = sqlite3.connect(self.db_name)
-        self.cursor = self.conn.cursor()
-        self.selected_table = None
+        self.conn = sqlite3.connect(self.db_name)  # SQLite veritabanına bağlan
+        self.cursor = self.conn.cursor()  # Bir cursor oluştur
+        self.selected_table = None  # Başlangıçta seçili bir tablo yok
 
     def execute_query(self, query):
+        # Veritabanında bir SQL sorgusu çalıştır
         try:
-            self.cursor.execute(query)
-            self.conn.commit()
-            result = self.cursor.fetchall()
+            self.cursor.execute(query)  # Sorguyu çalıştır
+            self.conn.commit()  # Değişiklikleri kaydet
+            result = self.cursor.fetchall()  # Tüm sonuçları al
             return 'Sorgu başarıyla çalıştırıldı.', result
         except Exception as e:
             return f'Hata: {str(e)}', []
 
     def select_table(self, table_name):
+        # Bir tabloyu seç
         try:
             self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
-            result = self.cursor.fetchone()
+            result = self.cursor.fetchone()  # İlk sonucu al
             if result:
-                self.selected_table = table_name
+                self.selected_table = table_name  # Tabloyu seç
                 return f"'{table_name}' tablosu seçildi."
             else:
                 return f"'{table_name}' adında bir tablo bulunamadı."
@@ -31,18 +33,20 @@ class DataConnect:
             return f'Hata: {str(e)}'
 
     def get_all_tables(self):
+        # Tüm tablo isimlerini al
         try:
             self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-            result = self.cursor.fetchall()
-            return [table[0] for table in result]
+            result = self.cursor.fetchall()  # Tüm sonuçları al
+            return [table[0] for table in result]  # Tablo isimlerinin listesini döndür
         except Exception as e:
             return f'Hata: {str(e)}'
 
     def show_selected_table(self):
+        # Seçili tabloyu göster
         if self.selected_table:
             try:
                 self.cursor.execute(f"SELECT * FROM {self.selected_table}")
-                result = self.cursor.fetchall()
+                result = self.cursor.fetchall()  # Tüm sonuçları al
                 return result
             except Exception as e:
                 return f'Hata: {str(e)}'
@@ -50,13 +54,14 @@ class DataConnect:
             return "Lütfen önce bir tablo seçin."
 
     def add_data(self, **field_values):
+        # Seçili tabloya veri ekle
         if self.selected_table:
             try:
-                columns = ', '.join(field_values.keys())
-                placeholders = ', '.join(['?'] * len(field_values))
+                columns = ', '.join(field_values.keys())  # Sütun isimlerini birleştir
+                placeholders = ', '.join(['?'] * len(field_values))  # Yer tutucular oluştur
                 query = f"INSERT INTO {self.selected_table} ({columns}) VALUES ({placeholders})"
-                self.cursor.execute(query, tuple(field_values.values()))
-                self.conn.commit()
+                self.cursor.execute(query, tuple(field_values.values()))  # Veriyi ekle
+                self.conn.commit()  # Değişiklikleri kaydet
                 return 'Veri başarıyla eklendi.'
             except Exception as e:
                 return f'Hata: {str(e)}'
@@ -64,13 +69,14 @@ class DataConnect:
             return "Lütfen önce bir tablo seçin."
 
     def update_data(self, id, **field_values):
+        # Seçili tablodaki veriyi güncelle
         if self.selected_table:
             try:
-                placeholders = ', '.join([f"{k} = ?" for k in field_values.keys()])
+                placeholders = ', '.join([f"{k} = ?" for k in field_values.keys()])  # Yer tutucular oluştur
                 query = f"UPDATE {self.selected_table} SET {placeholders} WHERE id = ?"
-                values = tuple(field_values.values()) + (id,)
-                self.cursor.execute(query, values)
-                self.conn.commit()
+                values = tuple(field_values.values()) + (id,)  # Güncellenmiş değerler
+                self.cursor.execute(query, values)  # Veriyi güncelle
+                self.conn.commit()  # Değişiklikleri kaydet
                 return 'Veri başarıyla güncellendi.'
             except Exception as e:
                 return f'Hata: {str(e)}'
@@ -78,10 +84,11 @@ class DataConnect:
             return "Lütfen önce bir tablo seçin."
 
     def delete_data_by_row(self, row_num):
+        # Seçili tablodaki bir satırı sil
         if self.selected_table:
             try:
                 self.cursor.execute(f"DELETE FROM {self.selected_table} WHERE rowid = ?", (row_num,))
-                self.conn.commit()
+                self.conn.commit()  # Değişiklikleri kaydet
                 return 'Veri başarıyla silindi.'
             except Exception as e:
                 return f'Hata: {str(e)}'
@@ -89,71 +96,75 @@ class DataConnect:
             return "Lütfen önce bir tablo seçin."
 
     def create_table(self, table_name, **columns):
+        # Yeni bir tablo oluştur
         try:
-            columns_def = ', '.join([f"{col_name} {data_type}" for col_name, data_type in columns.items()])
-            self.cursor.execute(f"CREATE TABLE {table_name} ({columns_def})")
-            self.conn.commit()
+            columns_def = ', '.join([f"{col_name} {data_type}" for col_name, data_type in columns.items()])  # Sütun tanımları oluştur
+            self.cursor.execute(f"CREATE TABLE {table_name} ({columns_def})")  # Tabloyu oluştur
+            self.conn.commit()  # Değişiklikleri kaydet
             return f"'{table_name}' tablosu başarıyla oluşturuldu."
         except Exception as e:
             return f'Hata: {str(e)}'
 
     def delete_table(self, table_name):
+        # Bir tabloyu sil
         try:
-            self.cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
-            self.conn.commit()
+            self.cursor.execute(f"DROP TABLE IF EXISTS {table_name}")  # Tabloyu sil
+            self.conn.commit()  # Değişiklikleri kaydet
             return f"'{table_name}' tablosu başarıyla silindi."
         except Exception as e:
             return f'Hata: {str(e)}'
 
     def get_table_columns(self, table_name):
+        # Bir tablodaki sütun isimlerini al
         try:
             self.cursor.execute(f"PRAGMA table_info({table_name})")
-            result = self.cursor.fetchall()
-            return [column[1] for column in result]
+            result = self.cursor.fetchall()  # Tüm sonuçları al
+            return [column[1] for column in result]  # Sütun isimlerinin listesini döndür
         except Exception as e:
             return f'Hata: {str(e)}'
 
     def __del__(self):
-        self.conn.close()
+        self.conn.close()  # Nesne silindiğinde bağlantıyı kapat
 
 class MainWindow(QWidget):
     def __init__(self, db_name):
         super().__init__()
-        self.setWindowTitle("SQLite Database Browser")
-        self.setGeometry(100, 100, 600, 400)
+        self.setWindowTitle("SQLite Database Browser")  # Pencere başlığını ayarla
+        self.setGeometry(100, 100, 600, 400)  # Pencere boyutunu ve konumunu ayarla
 
-        self.db = DataConnect(db_name)
+        self.db = DataConnect(db_name)  # Veritabanı bağlantısını başlat
 
-        self.main_layout = QVBoxLayout()
+        self.main_layout = QVBoxLayout()  # Ana dikey yerleşim
 
-        self.tabs = QTabWidget()
+        self.tabs = QTabWidget()  # Sekme widget'ı oluştur
 
-        self.create_table_page = self.create_table_ui()
-        self.table_operations_page = self.table_operations_ui()
-        self.query_execution_page = self.query_execution_ui()
+        self.create_table_page = self.create_table_ui()  # Tablo oluşturma ve silme arayüzü
+        self.table_operations_page = self.table_operations_ui()  # Tablo işlemleri arayüzü
+        self.query_execution_page = self.query_execution_ui()  # Sorgu çalıştırma arayüzü
 
-        self.tabs.addTab(self.create_table_page, "Table Operations")
-        self.tabs.addTab(self.table_operations_page, "Data Operations")
-        self.tabs.addTab(self.query_execution_page, "Execute Query")
+        self.tabs.addTab(self.create_table_page, "Table Operations")  # Sekmeye tablo işlemleri arayüzünü ekle
+        self.tabs.addTab(self.table_operations_page, "Data Operations")  # Sekmeye veri işlemleri arayüzünü ekle
+        self.tabs.addTab(self.query_execution_page, "Execute Query")  # Sekmeye sorgu çalıştırma arayüzünü ekle
 
-        self.main_layout.addWidget(self.tabs)
+        self.main_layout.addWidget(self.tabs)  # Sekmeleri ana yerleşime ekle
 
-        self.setLayout(self.main_layout)
+        self.setLayout(self.main_layout)  # Ana yerleşimi pencereye uygula
 
     def create_table_ui(self):
+        # Tablo oluşturma ve silme arayüzünü oluştur
         widget = QWidget()
         layout = QVBoxLayout()
 
-        self.table_name_input = QLineEdit()
+        self.table_name_input = QLineEdit()  # Tablo adı girişi
         self.table_name_input.setPlaceholderText("Table Name")
 
-        self.columns_input = QLineEdit()
+        self.columns_input = QLineEdit()  # Sütunlar girişi
         self.columns_input.setPlaceholderText("Columns (e.g. id INTEGER PRIMARY KEY, name TEXT)")
 
-        create_table_button = QPushButton("Create Table")
+        create_table_button = QPushButton("Create Table")  # Tablo oluşturma butonu
         create_table_button.clicked.connect(self.create_table)
 
-        delete_table_button = QPushButton("Delete Table")
+        delete_table_button = QPushButton("Delete Table")  # Tablo silme butonu
         delete_table_button.clicked.connect(self.delete_table)
 
         layout.addWidget(QLabel("Create a new table"))
@@ -162,22 +173,23 @@ class MainWindow(QWidget):
         layout.addWidget(create_table_button)
         layout.addWidget(delete_table_button)
 
-        self.table_list = QListWidget()
+        self.table_list = QListWidget()  # Var olan tabloların listesi
         self.table_list.itemClicked.connect(self.select_table)
 
         layout.addWidget(QLabel("Existing Tables"))
         layout.addWidget(self.table_list)
 
-        show_tables_button = QPushButton("Show Tables")
+        show_tables_button = QPushButton("Show Tables")  # Tabloları göster butonu
         show_tables_button.clicked.connect(self.show_tables)
 
         layout.addWidget(show_tables_button)
 
-        widget.setLayout(layout)
+        widget.setLayout(layout)  # Yerleşimi widget'a uygula
 
         return widget
 
     def create_table(self):
+        # Yeni bir tablo oluştur
         table_name = self.table_name_input.text()
         columns = self.columns_input.text()
 
@@ -191,6 +203,7 @@ class MainWindow(QWidget):
         self.show_tables()
 
     def delete_table(self):
+        # Bir tabloyu sil
         table_name = self.table_name_input.text()
 
         if not table_name:
@@ -202,6 +215,7 @@ class MainWindow(QWidget):
         self.show_tables()
 
     def show_tables(self):
+        # Tüm tabloları göster
         tables = self.db.get_all_tables()
         self.table_list.clear()
         if isinstance(tables, list):
@@ -210,30 +224,32 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", tables)
 
     def select_table(self, item):
+        # Bir tabloyu seç
         table_name = item.text()
         message = self.db.select_table(table_name)
         QMessageBox.information(self, "Select Table", message)
-        self.tabs.setCurrentWidget(self.table_operations_page)
+        self.tabs.setCurrentWidget(self.table_operations_page)  # Veri işlemleri sekmesine geç
 
     def table_operations_ui(self):
+        # Tablo işlemleri arayüzünü oluştur
         widget = QWidget()
         layout = QVBoxLayout()
 
         self.operation_status = QLabel("Table Operations")
 
-        self.add_data_button = QPushButton("Add Data")
+        self.add_data_button = QPushButton("Add Data")  # Veri ekleme butonu
         self.add_data_button.clicked.connect(self.add_data_dialog)
 
-        self.show_table_button = QPushButton("Show Table Contents")
+        self.show_table_button = QPushButton("Show Table Contents")  # Tablo içeriğini gösterme butonu
         self.show_table_button.clicked.connect(self.show_table_contents)
 
-        self.update_data_button = QPushButton("Update Data")
+        self.update_data_button = QPushButton("Update Data")  # Veri güncelleme butonu
         self.update_data_button.clicked.connect(self.update_data_dialog)
 
-        self.delete_data_button = QPushButton("Delete Data")
+        self.delete_data_button = QPushButton("Delete Data")  # Veri silme butonu
         self.delete_data_button.clicked.connect(self.delete_data_dialog)
 
-        self.table_content_display = QTableWidget()
+        self.table_content_display = QTableWidget()  # Tablo içeriği görüntüleme widget'ı
 
         layout.addWidget(self.operation_status)
         layout.addWidget(self.add_data_button)
@@ -242,26 +258,27 @@ class MainWindow(QWidget):
         layout.addWidget(self.show_table_button)
         layout.addWidget(self.table_content_display)
 
-        back_button = QPushButton("Back to Main")
+        back_button = QPushButton("Back to Main")  # Ana sayfaya dönüş butonu
         back_button.clicked.connect(self.back_to_main)
 
         layout.addWidget(back_button)
 
-        widget.setLayout(layout)
+        widget.setLayout(layout)  # Yerleşimi widget'a uygula
 
         return widget
 
     def add_data_dialog(self):
+        # Veri ekleme diyaloğunu aç
         column_names = self.db.get_table_columns(self.db.selected_table)
         if column_names:
-            rows, ok = QInputDialog.getInt(self, "Add Data", "Enter number of rows:")
+            rows, ok = QInputDialog.getInt(self, "Add Data", "Enter number of rows:")  # Kaç satır ekleneceğini sor
             if ok:
-                cols, ok = QInputDialog.getInt(self, "Add Data", "Enter number of columns:")
+                cols, ok = QInputDialog.getInt(self, "Add Data", "Enter number of columns:")  # Kaç sütun ekleneceğini sor
                 if ok:
                     self.data_input_table = QTableWidget(rows, cols)
                     self.data_input_table.setHorizontalHeaderLabels(column_names[:cols])
                     
-                    save_button = QPushButton("Save Data")
+                    save_button = QPushButton("Save Data")  # Veriyi kaydet butonu
                     save_button.clicked.connect(self.save_data)
 
                     layout = QVBoxLayout()
@@ -277,14 +294,15 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", "No table selected")
 
     def update_data_dialog(self):
+        # Veri güncelleme diyaloğunu aç
         column_names = self.db.get_table_columns(self.db.selected_table)
         if column_names:
-            id, ok = QInputDialog.getInt(self, "Update Data", "Enter ID of the row to update:")
+            id, ok = QInputDialog.getInt(self, "Update Data", "Enter ID of the row to update:")  # Güncellenecek satırın ID'sini sor
             if ok:
                 self.data_input_table = QTableWidget(1, len(column_names))
                 self.data_input_table.setHorizontalHeaderLabels(column_names)
                 
-                save_button = QPushButton("Update Data")
+                save_button = QPushButton("Update Data")  # Veriyi güncelle butonu
                 save_button.clicked.connect(lambda: self.update_data(id))
 
                 layout = QVBoxLayout()
@@ -300,13 +318,15 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", "No table selected")
 
     def delete_data_dialog(self):
-        row_num, ok = QInputDialog.getInt(self, "Delete Data", "Enter row number to delete:")
+        # Veri silme diyaloğunu aç
+        row_num, ok = QInputDialog.getInt(self, "Delete Data", "Enter row number to delete:")  # Silinecek satır numarasını sor
         if ok:
             message = self.db.delete_data_by_row(row_num)
             QMessageBox.information(self, "Delete Data", message)
             self.show_table_contents()
 
     def save_data(self):
+        # Veriyi kaydet
         rows = self.data_input_table.rowCount()
         cols = self.data_input_table.columnCount()
         data = []
@@ -326,6 +346,7 @@ class MainWindow(QWidget):
         self.show_table_contents()
 
     def update_data(self, id):
+        # Veriyi güncelle
         cols = self.data_input_table.columnCount()
         row_data = {}
         for col in range(cols):
@@ -340,6 +361,7 @@ class MainWindow(QWidget):
         self.show_table_contents()
 
     def show_table_contents(self):
+        # Tablo içeriğini göster
         table_contents = self.db.show_selected_table()
         if isinstance(table_contents, list):
             num_rows = len(table_contents)
@@ -358,31 +380,34 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", table_contents)
 
     def back_to_main(self):
+        # Ana sayfaya dön
         self.tabs.setCurrentWidget(self.create_table_page)
 
     def query_execution_ui(self):
+        # Sorgu çalıştırma arayüzünü oluştur
         widget = QWidget()
         layout = QVBoxLayout()
 
-        self.query_input = QTextEdit()
+        self.query_input = QTextEdit()  # Sorgu girişi
         self.query_input.setPlaceholderText("Enter your SQL query here...")
 
-        execute_query_button = QPushButton("Execute Query")
+        execute_query_button = QPushButton("Execute Query")  # Sorguyu çalıştırma butonu
         execute_query_button.clicked.connect(self.execute_query)
 
-        self.query_result_display = QTableWidget()
+        self.query_result_display = QTableWidget()  # Sorgu sonuçlarını gösterme widget'ı
 
         layout.addWidget(QLabel("Execute SQL Query"))
         layout.addWidget(self.query_input)
         layout.addWidget(execute_query_button)
         layout.addWidget(self.query_result_display)
 
-        widget.setLayout(layout)
+        widget.setLayout(layout)  # Yerleşimi widget'a uygula
 
         return widget
 
     def execute_query(self):
-        query = self.query_input.toPlainText() 
+        # Sorguyu çalıştır
+        query = self.query_input.toPlainText()
         if not query:
             QMessageBox.warning(self, "Input Error", "Please enter a query")
             return
@@ -407,8 +432,8 @@ class MainWindow(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    db_name = "x4sqlite1.db"
-    window = MainWindow(db_name)
-    window.show()
+    db_name = "x4sqlite1.db"  # SQLite veritabanının adı
+    window = MainWindow(db_name)  # Belirtilen veritabanıyla ana pencereyi oluştur
+    window.show()  # Ana pencereyi göster
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec_())  # Uygulamayı çalıştır

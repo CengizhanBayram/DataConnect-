@@ -1,5 +1,4 @@
 # DataConnect için gereksinimler
-kivy
 
 # Flask için
 flask
