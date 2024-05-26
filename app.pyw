@@ -77,10 +77,10 @@ class DataConnect:
         else:
             return "Lütfen önce bir tablo seçin."
 
-    def delete_data(self, id):
+    def delete_data_by_row(self, row_num):
         if self.selected_table:
             try:
-                self.cursor.execute(f"DELETE FROM {self.selected_table} WHERE id = ?", (id,))
+                self.cursor.execute(f"DELETE FROM {self.selected_table} WHERE rowid = ?", (row_num,))
                 self.conn.commit()
                 return 'Veri başarıyla silindi.'
             except Exception as e:
@@ -300,9 +300,9 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", "No table selected")
 
     def delete_data_dialog(self):
-        id, ok = QInputDialog.getInt(self, "Delete Data", "Enter ID of the row to delete:")
+        row_num, ok = QInputDialog.getInt(self, "Delete Data", "Enter row number to delete:")
         if ok:
-            message = self.db.delete_data(id)
+            message = self.db.delete_data_by_row(row_num)
             QMessageBox.information(self, "Delete Data", message)
             self.show_table_contents()
 
@@ -382,7 +382,7 @@ class MainWindow(QWidget):
         return widget
 
     def execute_query(self):
-        query = self.query_input.toPlainText()
+        query = self.query_input.toPlainText() 
         if not query:
             QMessageBox.warning(self, "Input Error", "Please enter a query")
             return
