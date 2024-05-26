@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQLite Database Browser</title>
+</head>
+<body>
+    <h1>SQLite Database Browser</h1>
+    <form action="/select_table" method="POST">
+        <select name="table_name">
+            {% for table in tables %}
+                <option value="{{ table }}">{{ table }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" value="Select Table">
+    </form>
+</body>
+</html>

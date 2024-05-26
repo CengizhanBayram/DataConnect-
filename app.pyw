@@ -1,6 +1,6 @@
 import sys
 import sqlite3
-from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QMessageBox, QStackedWidget, QInputDialog, QHBoxLayout
+from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QMessageBox, QStackedWidget, QInputDialog, QHBoxLayout, QTextEdit, QTabWidget
 
 class DataConnect:
     def __init__(self, db_name):
@@ -13,9 +13,10 @@ class DataConnect:
         try:
             self.cursor.execute(query)
             self.conn.commit()
-            return 'Sorgu başarıyla çalıştırıldı.'
+            result = self.cursor.fetchall()
+            return 'Sorgu başarıyla çalıştırıldı.', result
         except Exception as e:
-            return f'Hata: {str(e)}'
+            return f'Hata: {str(e)}', []
 
     def select_table(self, table_name):
         try:
@@ -125,15 +126,17 @@ class MainWindow(QWidget):
 
         self.main_layout = QVBoxLayout()
 
-        self.stacked_widget = QStackedWidget()
+        self.tabs = QTabWidget()
 
         self.create_table_page = self.create_table_ui()
         self.table_operations_page = self.table_operations_ui()
+        self.query_execution_page = self.query_execution_ui()
 
-        self.stacked_widget.addWidget(self.create_table_page)
-        self.stacked_widget.addWidget(self.table_operations_page)
+        self.tabs.addTab(self.create_table_page, "Table Operations")
+        self.tabs.addTab(self.table_operations_page, "Data Operations")
+        self.tabs.addTab(self.query_execution_page, "Execute Query")
 
-        self.main_layout.addWidget(self.stacked_widget)
+        self.main_layout.addWidget(self.tabs)
 
         self.setLayout(self.main_layout)
 
@@ -210,7 +213,7 @@ class MainWindow(QWidget):
         table_name = item.text()
         message = self.db.select_table(table_name)
         QMessageBox.information(self, "Select Table", message)
-        self.stacked_widget.setCurrentWidget(self.table_operations_page)
+        self.tabs.setCurrentWidget(self.table_operations_page)
 
     def table_operations_ui(self):
         widget = QWidget()
@@ -355,7 +358,51 @@ class MainWindow(QWidget):
             QMessageBox.warning(self, "Error", table_contents)
 
     def back_to_main(self):
-        self.stacked_widget.setCurrentWidget(self.create_table_page)
+        self.tabs.setCurrentWidget(self.create_table_page)
+
+    def query_execution_ui(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        self.query_input = QTextEdit()
+        self.query_input.setPlaceholderText("Enter your SQL query here...")
+
+        execute_query_button = QPushButton("Execute Query")
+        execute_query_button.clicked.connect(self.execute_query)
+
+        self.query_result_display = QTableWidget()
+
+        layout.addWidget(QLabel("Execute SQL Query"))
+        layout.addWidget(self.query_input)
+        layout.addWidget(execute_query_button)
+        layout.addWidget(self.query_result_display)
+
+        widget.setLayout(layout)
+
+        return widget
+
+    def execute_query(self):
+        query = self.query_input.toPlainText()
+        if not query:
+            QMessageBox.warning(self, "Input Error", "Please enter a query")
+            return
+
+        message, result = self.db.execute_query(query)
+        QMessageBox.information(self, "Execute Query", message)
+
+        if result:
+            num_rows = len(result)
+            if num_rows > 0:
+                num_cols = len(result[0])
+                self.query_result_display.setRowCount(num_rows)
+                self.query_result_display.setColumnCount(num_cols)
+                for i in range(num_rows):
+                    for j in range(num_cols):
+                        item = QTableWidgetItem(str(result[i][j]))
+                        self.query_result_display.setItem(i, j, item)
+            else:
+                self.query_result_display.setRowCount(0)
+                self.query_result_display.setColumnCount(0)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
