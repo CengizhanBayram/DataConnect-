@@ -6,19 +6,11 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Flash mesajları için gerekli
 
 def get_db_connection():
-    retry_count = 5
-    while retry_count > 0:
-        try:
-            conn = sqlite3.connect('x4sqlite1.db')
-            conn.row_factory = sqlite3.Row
-            return conn
-        except sqlite3.OperationalError as e:
-            if 'database is locked' in str(e):
-                retry_count -= 1
-                time.sleep(1)  # 1 saniye bekleyip tekrar dene
-            else:
-                raise
-    raise sqlite3.OperationalError("Database is locked and all retries failed")
+ 
+    conn = sqlite3.connect('x4sqlite1.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+        
 
 @app.route('/')
 def index():

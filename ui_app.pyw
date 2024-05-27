@@ -1,6 +1,8 @@
 import sys
 import sqlite3
-from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QMessageBox, QStackedWidget, QInputDialog, QHBoxLayout, QTextEdit, QTabWidget
+from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QListWidget, QMessageBox, QInputDialog, QHBoxLayout, QTextEdit, QTabWidget, QFileDialog
 
 class DataConnect:
     def __init__(self, db_name):
@@ -127,28 +129,103 @@ class DataConnect:
         self.conn.close()  # Nesne silindiğinde bağlantıyı kapat
 
 class MainWindow(QWidget):
-    def __init__(self, db_name):
+    def __init__(self):
         super().__init__()
         self.setWindowTitle("SQLite Database Browser")  # Pencere başlığını ayarla
         self.setGeometry(100, 100, 600, 400)  # Pencere boyutunu ve konumunu ayarla
-
-        self.db = DataConnect(db_name)  # Veritabanı bağlantısını başlat
+        self.setWindowIcon(QIcon(r'C:\Users\ayhan\OneDrive\Masaüstü\Yeni klasör\DataConnect-\icon.png'))  # Pencereye logo ekle (Logo dosyasının yolu)
 
         self.main_layout = QVBoxLayout()  # Ana dikey yerleşim
 
+        self.db_selection_layout = QVBoxLayout()  # Veritabanı seçim yerleşimi
+
+        self.db_name_input = QLineEdit()  # Veritabanı adı girişi
+        self.db_name_input.setPlaceholderText("Enter database name or select an existing file")
+
+        select_db_button = QPushButton("Select Database")  # Veritabanı seçme butonu
+        select_db_button.clicked.connect(self.select_database)
+
+        create_db_button = QPushButton("Create Database")  # Veritabanı oluşturma butonu
+        create_db_button.clicked.connect(self.create_database)
+
+        self.db_selection_layout.addWidget(QLabel("Database Operations"))
+        self.db_selection_layout.addWidget(self.db_name_input)
+        self.db_selection_layout.addWidget(select_db_button)
+        self.db_selection_layout.addWidget(create_db_button)
+
+        self.main_layout.addLayout(self.db_selection_layout)  # Veritabanı seçim yerleşimini ana yerleşime ekle
+
         self.tabs = QTabWidget()  # Sekme widget'ı oluştur
+        self.main_layout.addWidget(self.tabs)  # Sekmeleri ana yerleşime ekle
+
+        self.setLayout(self.main_layout)  # Ana yerleşimi pencereye uygula
+
+        self.setStyleSheet("""
+            QWidget {
+                font-size: 14px;
+            }
+            QLineEdit {
+                padding: 5px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            }
+            QPushButton {
+                padding: 10px;
+                background-color: #007BFF;
+                color: white;
+                border: none;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #0056b3;
+            }
+            QTableWidget {
+                border: 1px solid #ccc;
+            }
+            QTabWidget::pane {
+                border: 1px solid #ccc;
+                border-radius: 5px;
+            }
+            QTabBar::tab {
+                padding: 10px;
+            }
+            QTabBar::tab:selected {
+                background-color: #007BFF;
+                color: white;
+            }
+        """)
+
+    def select_database(self):
+        # Var olan bir veritabanını seç
+        db_name, _ = QFileDialog.getOpenFileName(self, "Select Database", "", "SQLite Files (*.db *.sqlite)")
+        if db_name:
+            self.db_name_input.setText(db_name)
+            self.init_db(db_name)
+
+    def create_database(self):
+        # Yeni bir veritabanı oluştur
+        db_name = self.db_name_input.text()
+        if not db_name:
+            QMessageBox.warning(self, "Input Error", "Please enter a database name")
+            return
+
+        if not db_name.endswith('.db'):
+            db_name += '.db'
+
+        self.init_db(db_name)
+
+    def init_db(self, db_name):
+        # Veritabanını başlat
+        self.db = DataConnect(db_name)  # Veritabanı bağlantısını başlat
 
         self.create_table_page = self.create_table_ui()  # Tablo oluşturma ve silme arayüzü
         self.table_operations_page = self.table_operations_ui()  # Tablo işlemleri arayüzü
         self.query_execution_page = self.query_execution_ui()  # Sorgu çalıştırma arayüzü
 
+        self.tabs.clear()  # Sekmeleri temizle
         self.tabs.addTab(self.create_table_page, "Table Operations")  # Sekmeye tablo işlemleri arayüzünü ekle
         self.tabs.addTab(self.table_operations_page, "Data Operations")  # Sekmeye veri işlemleri arayüzünü ekle
         self.tabs.addTab(self.query_execution_page, "Execute Query")  # Sekmeye sorgu çalıştırma arayüzünü ekle
-
-        self.main_layout.addWidget(self.tabs)  # Sekmeleri ana yerleşime ekle
-
-        self.setLayout(self.main_layout)  # Ana yerleşimi pencereye uygula
 
     def create_table_ui(self):
         # Tablo oluşturma ve silme arayüzünü oluştur
@@ -432,8 +509,7 @@ class MainWindow(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    db_name = "x4sqlite1.db"  # SQLite veritabanının adı
-    window = MainWindow(db_name)  # Belirtilen veritabanıyla ana pencereyi oluştur
+    window = MainWindow()  # Ana pencereyi oluştur
     window.show()  # Ana pencereyi göster
 
     sys.exit(app.exec_())  # Uygulamayı çalıştır
